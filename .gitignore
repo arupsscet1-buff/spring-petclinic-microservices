@@ -20,4 +20,9 @@ target/
 # Branch switching
 generated/
 
+#Terraform
+terraform/.terraform*
+terraform/terraform.tfstate*
+terraform/~
+
 **/.DS_Store

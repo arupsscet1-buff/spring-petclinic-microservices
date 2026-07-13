@@ -1,0 +1,50 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vets-service
+  namespace: petclinic
+  labels:
+    app: vet-service
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vet-service
+  template:
+    metadata:
+      labels:
+        app: vet-service
+  tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "apps"
+    effect: "NO_SCHEDULE"
+      
+  nodeSelector:
+    role: apps
+
+  spec:
+    containers:
+    - name: pet-service
+      image: 
+      ports:
+        - containerPort: 8081
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: vet-service-svc
+  namespace: petclinic
+spec:
+  # Keeps external access on port 80 if type LoadBalancer/ClusterIP
+  type: ClusterIP 
+  ports:
+    - port: 80
+      targetPort: 8081   
+      protocol: TCP
+  selector:
+    app: vet-service # Must match the Deployment template label
