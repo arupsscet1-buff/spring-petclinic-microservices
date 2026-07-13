@@ -22,8 +22,7 @@ spec:
       - key: "dedicated"
         operator: "Equal"
         value: "apps"
-        effect: "NO_SCHEDULE"
-        
+        effect: "NoSchedule"
       nodeSelector:
         role: apps
       containers:
