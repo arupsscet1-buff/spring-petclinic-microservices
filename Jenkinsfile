@@ -14,10 +14,9 @@ pipeline {
             steps {
                 sh '''
                 if [ -d "spring-petclinic-microservices" ]; then
-                  cd spring-petclinic-microservices && git pull
-                else
-                  git clone https://github.com/arupsscet1-buff/spring-petclinic-microservices.git
+                  rm -rf spring-petclinic-microservices
                 fi
+                  git clone https://github.com/arupsscet1-buff/spring-petclinic-microservices.git
                 '''
             }
         }
@@ -74,9 +73,10 @@ pipeline {
             steps {
                 dir('spring-petclinic-microservices') {
                     sh '''
-                    sed -i "s|image:.*|image: ${ECR_REGISTRY}/${CUSTOMER_ECR_REPO}:${IMAGE_TAG} |g" "/kubernetes_manifests/customer_service.yaml"
-                    sed -i "s|image:.*|image: ${ECR_REGISTRY}/${VETS_ECR_REPO}:${IMAGE_TAG} |g" "/kubernetes_manifests/vets_service.yaml"
-                    kubectl apply -f /kubernetes_manifests/customer_service.yaml /kubernetes_manifests/customer_service.yaml
+                    sed -i "s|image:.*|image: ${ECR_REGISTRY}/${CUSTOMER_ECR_REPO}:${IMAGE_TAG}|g" "kubernetes_manifests/customer_service.yaml"
+                    sed -i "s|image:.*|image: ${ECR_REGISTRY}/${VETS_ECR_REPO}:${IMAGE_TAG}|g" "kubernetes_manifests/vets_service.yaml"
+                    kubectl apply -f kubernetes_manifests/customer_service.yaml 
+                    kubectl apply -f kubernetes_manifests/vets_service.yaml
                     
                     #check the deploymnet status
                     kubectl rollout status deployment/customer-service deployment/vets-service -n petclinic

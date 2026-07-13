@@ -27,7 +27,7 @@ spec:
         role: apps
       containers:
       - name: pet-service
-        image: 
+        image: 748624204530.dkr.ecr.ap-south-1.amazonaws.com/spring_petclinic/vets_service:42 
         ports:
           - containerPort: 8081
 
