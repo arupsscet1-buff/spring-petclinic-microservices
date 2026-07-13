@@ -15,21 +15,20 @@ spec:
     metadata:
       labels:
         app: customer-service
-  tolerations:
-  - key: "dedicated"
-    operator: "Equal"
-    value: "apps"
-    effect: "NO_SCHEDULE"
-      
-  nodeSelector:
-    role: apps
 
-  spec:
-    containers:
-    - name: customer-service
-      image: 
-      ports:
-        - containerPort: 8081
+    spec:
+      tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "apps"
+        effect: "NO_SCHEDULE"
+        nodeSelector:
+        role: apps
+      containers:
+      - name: customer-service
+        image: 
+        ports:
+          - containerPort: 8081
 
 ---
 

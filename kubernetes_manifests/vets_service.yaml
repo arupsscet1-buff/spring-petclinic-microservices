@@ -16,21 +16,21 @@ spec:
     metadata:
       labels:
         app: vet-service
-  tolerations:
-  - key: "dedicated"
-    operator: "Equal"
-    value: "apps"
-    effect: "NO_SCHEDULE"
-      
-  nodeSelector:
-    role: apps
 
-  spec:
-    containers:
-    - name: pet-service
-      image: 
-      ports:
-        - containerPort: 8081
+    spec:
+      tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "apps"
+        effect: "NO_SCHEDULE"
+        
+      nodeSelector:
+        role: apps
+      containers:
+      - name: pet-service
+        image: 
+        ports:
+          - containerPort: 8081
 
 ---
 
