@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customers-service
+  labels:
+    app: customers-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customers-service
+  template:
+    metadata:
+      labels:
+        app: customers-service
+    spec:
+      initContainers:
+        - name: wait-for-config-server
+          image: curlimages/curl:8.9.1
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for config-server..."
+              until curl -sf -o /dev/null http://config-server:8888; do
+                sleep 5
+              done
+              echo "config-server is up."
+        - name: wait-for-discovery-server
+          image: curlimages/curl:8.9.1
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for discovery-server..."
+              until curl -sf -o /dev/null http://discovery-server:8761; do
+                sleep 5
+              done
+              echo "discovery-server is up."
+      containers:
+        - name: customers-service
+          image: arupsscet1/spring-petclinic-customers-service:${IMAGE_TAG}
+          ports:
+            - containerPort: 8081
+          resources:
+            limits:
+              memory: "512Mi"
+            requests:
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customers-service
+spec:
+  selector:
+    app: customers-service
+  ports:
+    - port: 8081
+      targetPort: 8081

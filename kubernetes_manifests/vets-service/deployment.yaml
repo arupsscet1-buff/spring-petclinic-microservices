@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vets-service
+  namespace: spring-petclinic-app
+  labels:
+    app: vets-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vets-service
+  template:
+    metadata:
+      labels:
+        app: vets-service
+    spec:
+      initContainers:
+        - name: wait-for-config-server
+          image: curlimages/curl:8.9.1
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for config-server..."
+              until curl -sf -o /dev/null http://config-server:8888; do
+                sleep 5
+              done
+              echo "config-server is up."
+        - name: wait-for-discovery-server
+          image: curlimages/curl:8.9.1
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for discovery-server..."
+              until curl -sf -o /dev/null http://discovery-server:8761; do
+                sleep 5
+              done
+              echo "discovery-server is up."
+      containers:
+      - name: vets-service
+        image: arupsscet1/spring-petclinic-vets-service:${IMAGE_TAG}
+        ports:
+        - containerPort: 8083
+        resources:
+          limits:
+            memory: "512Mi"
+        requests:
+            memory: "256Mi"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8083
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8083
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 6
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vets-service
+spec:
+  selector:
+    app: vets-service
+  ports:
+    - port: 8083
+      targetPort: 8083
