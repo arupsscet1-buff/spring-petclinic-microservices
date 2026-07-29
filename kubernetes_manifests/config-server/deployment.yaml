@@ -22,9 +22,9 @@ spec:
         - containerPort: 8888
         resources:
           requests:
-            memory: '512Mi'
-          limits:
             memory: '256Mi'
+          limits:
+            memory: '512Mi'
         readinessProbe:
           httpGet:
             path: /actuator/health
