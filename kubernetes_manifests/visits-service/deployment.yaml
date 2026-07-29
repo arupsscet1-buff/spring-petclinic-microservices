@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: visits-service
-  namespace: spring-petclinic-app
+  namespace: app
   labels:
     app: visits-service
 spec:

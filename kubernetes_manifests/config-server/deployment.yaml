@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: config-server
-  namespace: spring-petclinic-app
+  namespace: app
   labels:
     app: config-server
 spec:
