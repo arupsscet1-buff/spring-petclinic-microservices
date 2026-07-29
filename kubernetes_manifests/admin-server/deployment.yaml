@@ -46,7 +46,7 @@ spec:
         resources:
           requests:
             memory: '256Mi'
-          limit:
+          limits:
             memory: '512Mi'
         readinessProbe:
           httpGet:
