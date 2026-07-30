@@ -1,0 +1,41 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: jenkins-agent
+  namespace: devops-tools
+spec:
+  serviceAccountName: jenkins-admin
+  tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "build"
+    effect: "NoSchedule"
+  volumes:
+  - name: jenkins-agent
+    persistentVolumeClaim:
+      claimName: agents-pv-claim
+  - name: docker-storage
+    emptyDir: {}
+  containers:
+  - name: jnlp
+    image: jenkins/inbound-agent:latest-jdk21
+  - name: jenkins-tools
+    image: arupsscet1/jenkins-tools:1.0
+    command: ["cat"]
+    env:
+     - name: DOCKER_HOST
+       value: tcp://localhost:2375
+    tty: true
+    volumeMounts:
+    - name: jenkins-agent
+      mountPath: /root
+  - name: docker
+    image: docker:28-dind
+    securityContext:
+      privileged: true
+    env:
+      - name: DOCKER_TLS_CERTDIR
+        value: ""
+    volumeMounts:
+    - name: docker-storage
+      mountPath: /var/lib/docker
