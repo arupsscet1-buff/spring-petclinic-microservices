@@ -22,3 +22,7 @@ variable "instance_count" {
     type = number
     default = 1
 }
+
+variable "ecr_repositories" {
+  type = list(string)
+}

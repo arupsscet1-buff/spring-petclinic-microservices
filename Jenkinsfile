@@ -17,6 +17,11 @@ pipeline {
             defaultContainer 'jenkins-tools'
         }
     }
+    environment {
+        ECR_REGISTRY      = "748624204530.dkr.ecr.ap-south-1.amazonaws.com"
+        REGION            = "ap-south-1"
+        IMAGE_TAG         = "${env.BUILD_NUMBER}"
+    }
     
     stages {
         stage('Checkout'){
@@ -57,22 +62,10 @@ pipeline {
             steps {
 				script {
 					def branches = services.collectEntries { s ->
-						["push-${s.name}" : { dockerPush(svc_name: s.name) }]
+						["push-${s.name}" : { dockerPush(svc_name: s.name,registry: ${ECR_REGISTRY},repository: s.name) }]
 					}
 					parallel branches
 				}
-			}
-        }
-        stage('Deploy') {
-            steps {
-                sh '''
-                    pwd
-
-                    find kubernetes_manifest -name "deployment.yaml" \
-                    -exec sed -Ei "s|(image: .+:).*|\\1${IMAGE_TAG}|" {} \\;
-
-                    kubectl apply -f kubernetes_manifest/
-                '''
 			}
         }
     }

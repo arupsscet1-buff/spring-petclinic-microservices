@@ -21,8 +21,28 @@ target/
 generated/
 
 #Terraform
-terraform/.terraform*
-terraform/terraform.tfstate*
-terraform/~
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Terraform variables
+*.tfvars
+!terraform.tfvars.example
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform lock file
+# Keep this committed for teams
+#!.terraform.lock.hcl
+
+# If you don't want to commit it
+#.terraform.lock.hcl
 
 **/.DS_Store

@@ -77,3 +77,9 @@ module "alb-controller" {
 
     depends_on = [ module.eks ]
 }
+
+module "ecr" {
+  source = "../../modules/ecr"
+
+  repositories = var.ecr_repositories
+}
