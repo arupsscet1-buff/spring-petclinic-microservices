@@ -116,7 +116,7 @@ pipeline {
                     script {
                         sh """
                             yq -i '.*.image.tag = \"${IMAGE_TAG}\"' values.yaml"
-                            yq -i 'appVersion = \"${IMAGE_TAG}\"' Chart.yaml"
+                            yq -i '.appVersion = \"${IMAGE_TAG}\"' Chart.yaml"
                         """
                         withCredentials([
                             usernamePassword(
