@@ -51,6 +51,8 @@ pipeline {
         }
         stage('Docker build') {
             steps {
+                sh 'pwd'
+                sh 'ls -ltra'
 				script {
 					services.each { s ->
 						dockerBuild(svc_name: s.name, port: s.port)
