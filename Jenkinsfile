@@ -115,6 +115,7 @@ pipeline {
                         sh '''
                             pwd
                             ls -la
+                            git config --global --add safe.directory /home/jenkins/agent/workspace/spring-petsclinic/petclinic-helm
                             git status
                         '''
                     script {
