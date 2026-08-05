@@ -120,6 +120,7 @@ pipeline {
                         '''
                     script {
                         sh "yq -i '.image.tag = \"${IMAGE_TAG}\"' values.yaml"
+                        sh "cat values.yaml | grep tag"
                         withCredentials([
                             usernamePassword(
                                 credentialsId: 'github_cred',
