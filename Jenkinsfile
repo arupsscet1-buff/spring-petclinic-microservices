@@ -80,6 +80,16 @@ pipeline {
         stage('Push Image') {
             steps {
                 dir(appDir) {
+                        sh '''
+                        echo "=== AWS Identity ==="
+                        aws sts get-caller-identity
+
+                        echo "=== AWS Configure ==="
+                        aws configure list
+
+                        echo "=== Environment ==="
+                        env | grep AWS || true
+                        '''
                     script {
                         def branches = services.collectEntries { s ->
                             ["push-${s.name}" : { dockerPush(imageName: s.name, registryType: 'ecr', registry: env.ECR_REGISTRY, repository: s.name, awsRegion: env.REGION) }]
