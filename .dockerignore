@@ -1,0 +1,46 @@
+# Git
+.git
+.github
+.gitattributes
+
+# IDE / Editor
+.devcontainer
+.vscode
+.idea
+
+# Documentation
+docs
+README.md
+CONTRIBUTING.md
+LICENSE
+
+# CI/CD
+Jenkinsfile
+docker-compose.yml
+kubernetes_manifests
+
+# Environment files
+.env
+
+# Maven local cache (if present)
+.m2
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+
+# Build outputs
+**/target
+**/build
+
+# Optional: Maven Wrapper (only if NOT used in Docker build)
+# .mvn
+# mvnw
+# mvnw.cmd
