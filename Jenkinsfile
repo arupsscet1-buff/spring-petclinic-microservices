@@ -52,7 +52,7 @@ pipeline {
         stage('Docker build') {
             steps {
                 sh 'pwd'
-                sh 'ls -ltra'
+                sh 'ls -ltra spring-petclinic-admin-server/target/'
 				script {
 					services.each { s ->
 						dockerBuild(svc_name: s.name, port: s.port)
