@@ -64,12 +64,19 @@ pipeline {
             steps {
 				script {
 					def branches = services.collectEntries { s ->
-						["push-${s.name}" : { dockerPush(svc_name: s.name,registry: ${ECR_REGISTRY},repository: s.name) }]
+						["push-${s.name}" : { dockerPush(imageName: s.name, registryType: ecr, registry: ${ECR_REGISTRY}, repository: s.name, awsRegion: ap-south-1) }]
 					}
 					parallel branches
 				}
 			}
         }
+        stage('Checkout'){
+            steps {
+				gitCheckout(branch:'main', credentialsId:'github_cred', url:'https://github.com/arupsscet1-buff/petclinic-helm.git')
+            }
+        }
+
+
     }
     post {
         always {
