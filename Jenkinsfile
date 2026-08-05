@@ -112,6 +112,11 @@ pipeline {
         stage('Update Helm Values') {
             steps {
                 dir(helmDir) {
+                        sh '''
+                            pwd
+                            ls -la
+                            git status
+                        '''
                     script {
                         sh "yq -i '.image.tag = \"${IMAGE_TAG}\"' values.yaml"
                         withCredentials([
