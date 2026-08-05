@@ -114,8 +114,10 @@ pipeline {
                 dir(helmDir) {
 
                     script {
-                        sh "yq -i '.*.image.tag = \"${IMAGE_TAG}\"' values.yaml"
-                        sh "cat values.yaml | grep tag"
+                        sh """
+                            yq -i '.*.image.tag = \"${IMAGE_TAG}\"' values.yaml"
+                            yq -i 'appVersion = \"${IMAGE_TAG}\"' Chart.yaml"
+                        """
                         withCredentials([
                             usernamePassword(
                                 credentialsId: 'github_cred',
