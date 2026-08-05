@@ -37,7 +37,7 @@ tmp
 temp
 
 # Build outputs
-**/target
+#**/target
 **/build
 
 # Optional: Maven Wrapper (only if NOT used in Docker build)
