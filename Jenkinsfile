@@ -9,6 +9,9 @@ def services = [
     [name: 'spring-petclinic-discovery-server',   port: '8761'],
     [name: 'spring-petclinic-api-gateway',        port: '8080'],
 ]
+def appDir
+def helmDir
+
 pipeline {
     agent {
         kubernetes {
@@ -22,10 +25,8 @@ pipeline {
         REGION            = "ap-south-1"
         IMAGE_TAG           = "1.0.0-${env.BUILD_NUMBER}"
     }
-    
+
     stages {
-        def appDir
-        def helmDir
 
         stage('Checkout Application Code') {
             steps {
@@ -81,7 +82,7 @@ pipeline {
                 dir(appDir) {
                     script {
                         def branches = services.collectEntries { s ->
-                            ["push-${s.name}" : { dockerPush(imageName: s.name, registryType: ecr, registry: ${ECR_REGISTRY}, repository: s.name, awsRegion: ap-south-1) }]
+                            ["push-${s.name}" : { dockerPush(imageName: s.name, registryType: 'ecr', registry: env.ECR_REGISTRY, repository: s.name, awsRegion: env.REGION) }]
                         }
                         parallel branches
                     }
@@ -90,13 +91,11 @@ pipeline {
         }
         stage('Checkout Helm Charts') {
             steps {
-                dir(helmDir) {
-                    script {
-                        helmDir = gitCheckout(
-                            url: 'https://github.com/arupsscet1-buff/petclinic-helm.git',
-                            branch: 'main'
-                        )
-                    }
+                script {
+                    helmDir = gitCheckout(
+                        url: 'https://github.com/arupsscet1-buff/petclinic-helm.git',
+                        branch: 'main'
+                    )
                 }
             }
         }
@@ -105,11 +104,30 @@ pipeline {
                 dir(helmDir) {
                     script {
                         sh "yq -i '.image.tag = \"${IMAGE_TAG}\"' values.yaml"
-                        sh """
-                            git add values.yaml
-                            git commit -m "Update service images to ${IMAGE_TAG}"
-                            git push -u origin main
-                        """
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'github_cred',
+                                usernameVariable: 'GIT_USERNAME',
+                                passwordVariable: 'GIT_TOKEN'
+                            )
+                        ]) {
+                                sh """
+                                    git config user.name "arupsscet1-buff"
+                                    git config user.email "arupsscet1@gmail.com"
+
+                                    git remote set-url origin https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/arupsscet1-buff/petclinic-helm.git
+
+                                    git push origin main
+                                """
+                                sh """
+                                git add values.yaml
+
+                                git diff --cached --quiet || \
+                                git commit -m "Update service images to ${IMAGE_TAG}"
+
+                                git push origin main
+                                """
+                            }
                     }
                 }
             }
