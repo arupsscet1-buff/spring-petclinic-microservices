@@ -112,14 +112,9 @@ pipeline {
         stage('Update Helm Values') {
             steps {
                 dir(helmDir) {
-                        sh '''
-                            pwd
-                            ls -la
-                            git config --global --add safe.directory /home/jenkins/agent/workspace/spring-petsclinic/petclinic-helm
-                            git status
-                        '''
+
                     script {
-                        sh "yq -i '.image.tag = \"${IMAGE_TAG}\"' values.yaml"
+                        sh "yq -i '.*.image.tag = \"${IMAGE_TAG}\"' values.yaml"
                         sh "cat values.yaml | grep tag"
                         withCredentials([
                             usernamePassword(
@@ -129,20 +124,18 @@ pipeline {
                             )
                         ]) {
                                 sh """
+                                    git config --global --add safe.directory /home/jenkins/agent/workspace/spring-petsclinic/petclinic-helm
                                     git config user.name "arupsscet1-buff"
                                     git config user.email "arupsscet1@gmail.com"
 
                                     git remote set-url origin https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/arupsscet1-buff/petclinic-helm.git
 
+                                    git add values.yaml
+
+                                    git diff --cached --quiet || \
+                                    git commit -m "Update service images to ${IMAGE_TAG}"
+
                                     git push origin main
-                                """
-                                sh """
-                                git add values.yaml
-
-                                git diff --cached --quiet || \
-                                git commit -m "Update service images to ${IMAGE_TAG}"
-
-                                git push origin main
                                 """
                             }
                     }
