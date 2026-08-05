@@ -20,64 +20,102 @@ pipeline {
     environment {
         ECR_REGISTRY      = "748624204530.dkr.ecr.ap-south-1.amazonaws.com"
         REGION            = "ap-south-1"
-        IMAGE_TAG         = "${env.BUILD_NUMBER}"
+        IMAGE_TAG           = "1.0.0-${env.BUILD_NUMBER}"
     }
     
     stages {
-        stage('Checkout'){
+        def appDir
+        def helmDir
+
+        stage('Checkout Application Code') {
             steps {
-				gitCheckout(branch:'main', credentialsId:'github_cred', url:'https://github.com/arupsscet1-buff/spring-petclinic-microservices.git')
+                script {
+                    appDir = gitCheckout(
+                        url: 'https://github.com/arupsscet1-buff/spring-petclinic-microservices.git',
+                        branch: 'main'
+                    )
+                }
             }
         }
         stage('Build & Verify'){
             steps {
-				sh 'mvn wrapper:wrapper'
-				mavenWrapperBuild()
+                dir(appDir) {
+                    sh 'mvn wrapper:wrapper'
+                    mavenWrapperBuild()
+                }
             }
         }
         stage('Concurrent Analysis & Testing') {
             parallel {
                 stage('Gileaks secret scan'){
                     steps {
-						gitLeaks()
+                        dir(appDir) {
+						    gitLeaks()
+                        }
                     }
                 }
                 stage('Trivy file system scan') {
                     steps {
-						trivyScan()
+                        dir(appDir) {
+						    trivyScan()
+                        }
                     }
                 }
             }
         }
         stage('Docker build') {
             steps {
-                sh 'pwd'
-                sh 'ls -ltra spring-petclinic-admin-server/target/'
-				script {
-					services.each { s ->
-						dockerBuild(svc_name: s.name, port: s.port)
-					}
+                dir(appDir) {
+                    sh 'pwd'
+                    sh 'ls -ltra spring-petclinic-admin-server/target/'
+                    script {
+                        services.each { s ->
+                            dockerBuild(svc_name: s.name, port: s.port)
+                        }
+                    }
 				}
             }
         }
         stage('Push Image') {
             steps {
-				script {
-					def branches = services.collectEntries { s ->
-						["push-${s.name}" : { dockerPush(imageName: s.name, registryType: ecr, registry: ${ECR_REGISTRY}, repository: s.name, awsRegion: ap-south-1) }]
-					}
-					parallel branches
-				}
+                dir(appDir) {
+                    script {
+                        def branches = services.collectEntries { s ->
+                            ["push-${s.name}" : { dockerPush(imageName: s.name, registryType: ecr, registry: ${ECR_REGISTRY}, repository: s.name, awsRegion: ap-south-1) }]
+                        }
+                        parallel branches
+                    }
+                }
 			}
         }
-        stage('Checkout'){
+        stage('Checkout Helm Charts') {
             steps {
-				gitCheckout(branch:'main', credentialsId:'github_cred', url:'https://github.com/arupsscet1-buff/petclinic-helm.git')
+                dir(helmDir) {
+                    script {
+                        helmDir = gitCheckout(
+                            url: 'https://github.com/arupsscet1-buff/petclinic-helm.git',
+                            branch: 'main'
+                        )
+                    }
+                }
             }
         }
-
-
+        stage('Update Helm Values') {
+            steps {
+                dir(helmDir) {
+                    script {
+                        sh "yq -i '.image.tag = \"${IMAGE_TAG}\"' values.yaml"
+                        sh """
+                            git add values.yaml
+                            git commit -m "Update service images to ${IMAGE_TAG}"
+                            git push -u origin main
+                        """
+                    }
+                }
+            }
+        }
     }
+
     post {
         always {
             echo 'Cleaning up the workspace...'
