@@ -135,7 +135,7 @@ pipeline {
                                     git diff --cached --quiet || \
                                     git commit -m "Update service images to ${IMAGE_TAG}"
 
-                                    git push origin main
+                                    git push origin HEAD:main
                                 """
                             }
                     }
