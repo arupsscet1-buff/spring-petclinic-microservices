@@ -1,0 +1,238 @@
+name: CI Workflow
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: "17"
+  SERVICE_MODULE: spring-petclinic-config-server
+  SERVICE_PORT: "8888"
+  IMAGE_NAME: ${{ vars.DOCKERHUB_USERNAME }}/spring-petclinic-config-server
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-test-scan:
+    name: Build, test, and scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Verify Maven wrapper
+        run: ./mvnw --version
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+          build-mode: manual
+
+      - name: Build and run tests
+        run: >
+          ./mvnw --batch-mode --no-transfer-progress
+          clean verify
+
+      - name: OWASP Dependency-Check
+        run: >
+          mvn --batch-mode --no-transfer-progress
+          org.owasp:dependency-check-maven:12.2.2:aggregate
+          -DfailBuildOnCVSS=7
+          -Dformats=HTML,JSON
+          -Dodc.outputDirectory=target/dependency-check
+          -DenableRetired=true
+
+      - name: Upload OWASP Dependency-Check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-dependency-check-${{ github.run_id }}
+          path: target/dependency-check/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Run code-quality checks
+        run: >
+          ./mvnw --batch-mode --no-transfer-progress
+          org.apache.maven.plugins:maven-checkstyle-plugin:3.6.0:check
+          org.apache.maven.plugins:maven-pmd-plugin:3.26.0:check
+          com.github.spotbugs:spotbugs-maven-plugin:4.10.3.0:check
+
+      - name: Scan repository with Trivy
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: SonarQube scan
+        # Never expose SonarQube credentials to forked PRs.
+        if: >
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Enforce SonarQube quality gate
+        if: >
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
+        with:
+          pollingTimeoutSec: 600
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Publish CodeQL findings
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:java-kotlin"
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ github.run_id }}
+          path: |
+            **/target/surefire-reports/**
+            **/target/failsafe-reports/**
+          if-no-files-found: warn
+          retention-days: 1
+
+      - name: Upload tested config-server JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-server-jar-${{ github.run_id }}
+          path: ${{ env.SERVICE_MODULE }}/target/${{ env.SERVICE_MODULE }}-*.jar
+          if-no-files-found: error
+          retention-days: 1
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Block risky dependency changes
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0
+
+  publish-config-server:
+    name: Scan and publish config-server image
+    needs: [build-test-scan, dependency-review]
+    if: |
+      always() &&
+      needs.build-test-scan.result == 'success' &&
+      (needs.dependency-review.result == 'success' || needs.dependency-review.result == 'skipped') &&
+      github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    # Create this environment in GitHub and require reviewer approval for it.
+    environment: production
+
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Download tested JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: config-server-jar-${{ github.run_id }}
+          path: ${{ env.SERVICE_MODULE }}/target
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image locally for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          build-args: |
+            ARTIFACT_NAME=${{ env.SERVICE_MODULE }}/target/${{ env.SERVICE_MODULE }}-4.0.1
+            EXPOSED_PORT=${{ env.SERVICE_PORT }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Block vulnerable image publication
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publish immutable commit image with SBOM and provenance
+        id: publish
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          build-args: |
+            ARTIFACT_NAME=${{ env.SERVICE_MODULE }}/target/${{ env.SERVICE_MODULE }}-4.0.1
+            EXPOSED_PORT=${{ env.SERVICE_PORT }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+
+            
