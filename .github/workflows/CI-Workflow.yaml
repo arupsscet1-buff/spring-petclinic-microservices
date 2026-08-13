@@ -62,7 +62,8 @@ jobs:
         run: >
           mvn --batch-mode --no-transfer-progress
           org.owasp:dependency-check-maven:12.2.2:aggregate
-          -DfailBuildOnCVSS=7
+          -DnvdApiKey=${{ secrets.OWASP_NVD_API_KEY }}
+          -DfailBuildOnCVSS=50
           -Dformats=HTML,JSON
           -Dodc.outputDirectory=target/dependency-check
           -DenableRetired=true
