@@ -58,11 +58,20 @@ jobs:
           ./mvnw --batch-mode --no-transfer-progress
           clean verify
 
+      - name: Cache Dependency-Check database
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.dependency-check
+          key: dependency-check-${{ runner.os }}
+          restore-keys: |
+            dependency-check-
+
       - name: OWASP Dependency-Check
         run: >
           mvn --batch-mode --no-transfer-progress
           org.owasp:dependency-check-maven:12.2.2:aggregate
           -DnvdApiKey=${{ secrets.OWASP_NVD_API_KEY }}
+          -DdataDirectory=${{ github.workspace }}/.dependency-check
           -DfailBuildOnCVSS=50
           -Dformats=HTML,JSON
           -Dodc.outputDirectory=target/dependency-check
@@ -78,11 +87,12 @@ jobs:
           retention-days: 14
 
       - name: Run code-quality checks
+        # org.apache.maven.plugins:maven-checkstyle-plugin:3.6.0:check
+        # com.github.spotbugs:spotbugs-maven-plugin:4.10.3.0:check
         run: >
           ./mvnw --batch-mode --no-transfer-progress
-          org.apache.maven.plugins:maven-checkstyle-plugin:3.6.0:check
           org.apache.maven.plugins:maven-pmd-plugin:3.26.0:check
-          com.github.spotbugs:spotbugs-maven-plugin:4.10.3.0:check
+          
 
       - name: Scan repository with Trivy
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
