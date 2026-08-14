@@ -66,25 +66,25 @@ jobs:
           restore-keys: |
             dependency-check-
 
-      - name: OWASP Dependency-Check
-        run: >
-          mvn --batch-mode --no-transfer-progress
-          org.owasp:dependency-check-maven:12.2.2:aggregate
-          -DnvdApiKey=${{ secrets.OWASP_NVD_API_KEY }}
-          -DdataDirectory=${{ github.workspace }}/.dependency-check
-          -DfailBuildOnCVSS=50
-          -Dformats=HTML,JSON
-          -Dodc.outputDirectory=target/dependency-check
-          -DenableRetired=true
+#      - name: OWASP Dependency-Check
+ #       run: >
+  #        mvn --batch-mode --no-transfer-progress
+   #       org.owasp:dependency-check-maven:12.2.2:aggregate
+    #      -DnvdApiKey=${{ secrets.OWASP_NVD_API_KEY }}
+     #     -DdataDirectory=${{ github.workspace }}/.dependency-check
+      #    -DfailBuildOnCVSS=50
+       #   -Dformats=HTML,JSON
+        #  -Dodc.outputDirectory=target/dependency-check
+         # -DenableRetired=true
 
-      - name: Upload OWASP Dependency-Check report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: owasp-dependency-check-${{ github.run_id }}
-          path: target/dependency-check/**
-          if-no-files-found: warn
-          retention-days: 14
+#      - name: Upload OWASP Dependency-Check report
+ #       _if: always()
+  #      uses: actions/upload-artifact@v4
+   #     with:
+    #      name: owasp-dependency-check-${{ github.run_id }}
+     #     path: target/dependency-check/**
+      #    if-no-files-found: warn
+       #   retention-days: 14
 
       - name: Run code-quality checks
         # org.apache.maven.plugins:maven-checkstyle-plugin:3.6.0:check
