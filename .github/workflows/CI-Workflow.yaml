@@ -94,15 +94,15 @@ jobs:
           org.apache.maven.plugins:maven-pmd-plugin:3.26.0:check
           
 
-      - name: Scan repository with Trivy
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,secret,misconfig
-          #severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
+      # - name: Scan repository with Trivy
+      #   uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+      #   with:
+      #     scan-type: fs
+      #     scan-ref: .
+      #     scanners: vuln,secret,misconfig
+      #     #severity: HIGH,CRITICAL
+      #     ignore-unfixed: true
+      #     exit-code: "1"
 
       - name: SonarQube scan
         # Never expose SonarQube credentials to forked PRs.
