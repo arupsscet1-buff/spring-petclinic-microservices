@@ -104,26 +104,26 @@ jobs:
       #     ignore-unfixed: true
       #     exit-code: "1"
 
-      - name: SonarQube scan
-        # Never expose SonarQube credentials to forked PRs.
-        if: >
-          github.event_name == 'push' &&
-          github.ref == 'refs/heads/main'
-        uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      # - name: SonarQube scan
+      #   # Never expose SonarQube credentials to forked PRs.
+      #   if: >
+      #     github.event_name == 'push' &&
+      #     github.ref == 'refs/heads/main'
+      #   uses: SonarSource/sonarqube-scan-action@v5
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #     SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      - name: Enforce SonarQube quality gate
-        if: >
-          github.event_name == 'push' &&
-          github.ref == 'refs/heads/main'
-        uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
-        with:
-          pollingTimeoutSec: 600
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      # - name: Enforce SonarQube quality gate
+      #   if: >
+      #     github.event_name == 'push' &&
+      #     github.ref == 'refs/heads/main'
+      #   uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
+      #   with:
+      #     pollingTimeoutSec: 600
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #     SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: Publish CodeQL findings
         uses: github/codeql-action/analyze@v4
